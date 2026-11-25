@@ -92,7 +92,7 @@ icons: "none; the report uses no icons"
 
 # Entity resolver review report design
 
-One screen: `resolver/report_template.html`, filled by `resolver/report.py` and written to `out/report.html` by every run. Two readers: a Fundable engineer judging the case study, and a reviewer working the queue of uncertain decisions.
+One screen: `resolver/report_template.html`, filled by `resolver/report.py` and written to `out/report.html` by every run. Two readers: an engineer judging the case study, and a reviewer working the queue of uncertain decisions.
 
 ## The one bold element
 
@@ -110,7 +110,7 @@ The comparison: the incoming record and the database record set side by side, wi
 
 ## References
 
-- `F:\fundable\.scratch\problem.html` (the problem map made earlier in this project): taken, the neutral surfaces and direct labels on every mark; rejected, its stat-tile hero.
+- The problem map drawn earlier in this project (not in the repository): taken, the neutral surfaces and direct labels on every mark; rejected, its stat-tile hero.
 - https://openrefine.org/docs/manual/cellediting (Cluster and edit): taken, every suggested merge needs the reviewer's approval, one decision per group, and the result can be exported; rejected, a modal dialog as the whole tool.
 - https://moj-analytical-services.github.io/splink/charts/waterfall_chart.html (Splink waterfall chart): taken, each piece of evidence shown with the two compared values; rejected, the additive waterfall, because this pipeline's signals are not additive weights.
 - https://primer.style/product/getting-started/foundations/color-usage/ (GitHub Primer color usage): taken, one role per color (action for selection, warning for review, danger for wrong); rejected, the full eight-role set.
@@ -133,13 +133,13 @@ Plain and literal, addressed to the reviewer. Verbs: match, call new, confirm ("
 
 ## Decisions
 
-- 2026-11-25: Direction changed to Plan A, side by side (shape file `.scratch/design-shape.md`), approved by Alex on the rendered prototype ("much better"). The bold element moves from the verdict line to the record comparison.
-- 2026-11-25: Card grid dropped for a queue list plus a detail pane. This overrides the standing card-grid preference for this screen only: the job is comparing two records, and a grid cannot keep both visible.
-- 2026-11-25: Light is the default theme whatever the system setting, with a toggle to dark (Alex asked for light). `color.dark` gains `action-soft` and `agree`.
+- 2026-11-25: Direction changed to side by side after comparing rendered prototypes. The bold element moves from the verdict line to the record comparison.
+- 2026-11-25: Card grid dropped for a queue list plus a detail pane. The job is comparing two records, and a grid cannot keep both visible.
+- 2026-11-25: Light is the default theme whatever the system setting, with a toggle to dark. `color.dark` gains `action-soft` and `agree`.
 - 2026-11-25: `color.mark.agree` added for the shared-word highlight. It is the only use of yellow.
 - 2026-11-25: Motion: color transitions at `hover_ms` on rows and buttons; one entrance at `enter_ms` when the selected row changes (the pane rises 8 px, the confidence bar fills, the highlights light up last). Nothing animates on scroll or on marking a decision. All motion is off under reduced motion.
 - 2026-11-25: Confirming a decision moves to the next row; marking wrong stays so the correct answer can be chosen from the candidates.
 - 2026-11-25: System font stack for display and body. The report is one self-contained file opened from disk and the case study forbids fetching from anything but the entity's own site, so a web font cannot be loaded.
 - 2026-11-25: No shadows. Surfaces are separated by a hairline border and a tinted background.
 - 2026-11-25: `color.dark` added as a second set of semantic values, selected for the dark surface instead of derived by inversion.
-- 2026-11-25: File created by the design skill from the harness template. The palette is PROPOSED, confirm; the direction and the references were settled later the same day (entries above).
+- 2026-11-25: File created. The direction and the references were settled later the same day (entries above).
