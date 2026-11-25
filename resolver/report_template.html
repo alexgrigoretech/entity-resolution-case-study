@@ -1,0 +1,328 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Resolution review</title>
+<style>
+  :root {
+    color-scheme: light;
+    --page: #f3f5f8; --surface: #fbfcfd; --ink: #161b22; --ink-2: #556070; --line: #d5dbe3; --line-2: #8a94a3;
+    --action: #1f6fd6; --action-soft: #dbe8fb; --focus: #0a7d6e; --agree: #fff1b8;
+    --good: #1a7f37; --warn: #9a6700; --danger: #c9302c;
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --page: #12161c; --surface: #1a1f27; --ink: #e8ecf1; --ink-2: #9aa5b4; --line: #2f3743; --line-2: #556070;
+    --action: #5a9cf0; --action-soft: #0c2f61; --focus: #3fbfae; --agree: #5c4a00;
+    --good: #4cc26a; --warn: #e0a530; --danger: #f0706b;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body { margin: 0; background: var(--page); color: var(--ink); font: 14px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; display: grid; grid-template-rows: auto 1fr; }
+  :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+  button, input, select { font: inherit; color: inherit; }
+  .muted { color: var(--ink-2); }
+  .num { font-variant-numeric: tabular-nums; }
+
+  header { padding: 12px 24px; border-bottom: 1px solid var(--line); background: var(--surface); display: flex; gap: 8px 24px; align-items: baseline; flex-wrap: wrap; }
+  header h1 { font-size: 16px; margin: 0; font-weight: 650; }
+  header p { margin: 0; color: var(--ink-2); flex: 1; min-width: 240px; }
+  header p b { color: var(--ink); font-weight: 600; font-variant-numeric: tabular-nums; }
+  header button { background: transparent; border: 1px solid var(--line-2); border-radius: 4px; padding: 4px 12px; cursor: pointer; }
+
+  main { display: grid; grid-template-columns: 400px 1fr; min-height: 0; }
+  .queue { border-right: 1px solid var(--line); display: grid; grid-template-rows: auto 1fr; min-height: 0; background: var(--surface); }
+  .tools { padding: 12px 16px; border-bottom: 1px solid var(--line); display: grid; gap: 8px; }
+  .tools input[type=search] { width: 100%; background: var(--page); border: 1px solid var(--line); border-radius: 4px; padding: 4px 8px; }
+  .tabs { display: flex; gap: 4px; flex-wrap: wrap; }
+  .tabs button { background: transparent; border: 1px solid transparent; border-radius: 4px; padding: 4px 8px; cursor: pointer; color: var(--ink-2); }
+  .tabs button[aria-pressed=true] { background: var(--action-soft); color: var(--ink); font-weight: 600; }
+  .tabs .num { margin-left: 4px; }
+  .progress { font-size: 12px; color: var(--ink-2); display: flex; justify-content: space-between; gap: 8px; }
+  .list { overflow: auto; margin: 0; padding: 0; list-style: none; }
+  .row { display: grid; grid-template-columns: 1fr auto; gap: 0 12px; width: 100%; text-align: left; background: transparent; border: 0; border-bottom: 1px solid var(--line); border-left: 4px solid transparent; padding: 8px 16px 8px 12px; cursor: pointer; }
+  .row:hover { background: var(--page); }
+  .row[aria-current=true] { background: var(--action-soft); border-left-color: var(--action); }
+  .row .n { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .row .c { font-weight: 600; font-variant-numeric: tabular-nums; text-align: right; }
+  .row .v { color: var(--ink-2); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .row .s { font-size: 12px; text-align: right; }
+  .s.review { color: var(--warn); } .s.ok { color: var(--good); } .s.wrong { color: var(--danger); }
+  .none { padding: 32px 16px; color: var(--ink-2); }
+
+  .detail { overflow: auto; padding: 24px 32px 48px; min-width: 0; }
+  .back { display: none; background: transparent; border: 1px solid var(--line-2); border-radius: 4px; padding: 4px 12px; margin-bottom: 16px; cursor: pointer; }
+  .kicker { color: var(--ink-2); font-size: 12px; }
+  .verdict { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; margin: 4px 0 8px; }
+  .verdict h2 { font-size: 24px; line-height: 1.15; font-weight: 650; margin: 0; overflow-wrap: anywhere; }
+  .verdict .conf { font-size: 24px; font-weight: 650; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .verdict .conf small { font-size: 12px; font-weight: 400; color: var(--ink-2); margin-left: 4px; }
+  .track { height: 4px; background: var(--line); border-radius: 4px; overflow: hidden; margin: 0 0 12px; }
+  .fill { height: 100%; background: var(--action); transform-origin: left center; }
+  .why { max-width: 75ch; margin: 0 0 4px; }
+
+  /* Motion: color changes on hover and selection, one entrance when the selected row changes. */
+  .row, .tabs button, header button, .cand, .judge button, .back {
+    transition: background-color 120ms cubic-bezier(0.2, 0, 0, 1), border-color 120ms cubic-bezier(0.2, 0, 0, 1), color 120ms cubic-bezier(0.2, 0, 0, 1);
+  }
+  header button:hover, .judge button:hover, .back:hover { border-color: var(--ink); }
+  .cand:hover { border-color: var(--line-2); }
+  .detail.enter { animation: rise 240ms cubic-bezier(0.2, 0, 0, 1) both; }
+  .detail.enter .fill { animation: grow 240ms cubic-bezier(0.2, 0, 0, 1) 120ms both; }
+  .detail.enter mark { animation: lit 240ms cubic-bezier(0.2, 0, 0, 1) 240ms both; }
+  @keyframes rise { from { opacity: 0; transform: translateY(8px); } }
+  @keyframes grow { from { transform: scaleX(0); } }
+  @keyframes lit { from { background-color: transparent; } }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; }
+  }
+  .flags { color: var(--warn); font-size: 12px; font-weight: 600; margin: 0; }
+
+  .compare { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 24px; }
+  .rec { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 16px; min-width: 0; }
+  .rec.rejected { border-style: dashed; }
+  .rec h3 { font-size: 12px; font-weight: 600; color: var(--ink-2); margin: 0 0 8px; }
+  .rec .name { font-size: 20px; font-weight: 650; line-height: 1.15; overflow-wrap: anywhere; margin-bottom: 8px; }
+  .rec .text { white-space: pre-wrap; overflow-wrap: anywhere; margin: 0; }
+  .rec .more { background: transparent; border: 0; padding: 0; margin-top: 8px; color: var(--action); cursor: pointer; text-decoration: underline; }
+  mark { background: var(--agree); color: inherit; border-radius: 4px; padding: 0 2px; }
+  .signals { display: grid; grid-template-columns: auto 1fr; gap: 4px 16px; margin: 16px 0 0; font-size: 12px; }
+  .signals dt { color: var(--ink-2); } .signals dd { margin: 0; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+  .signals a { color: var(--ink); }
+  .signals:empty { display: none; }
+  .legend { font-size: 12px; color: var(--ink-2); margin: 8px 0 0; }
+
+  .detail > * { max-width: 1120px; }
+  section { margin-top: 32px; }
+  section > h3 { font-size: 14px; font-weight: 650; margin: 0 0 8px; }
+  .cands { display: grid; gap: 4px; }
+  .cand { display: grid; grid-template-columns: 1fr auto; gap: 0 16px; text-align: left; background: var(--surface); border: 1px solid var(--line); border-radius: 4px; padding: 8px 12px; cursor: pointer; }
+  .cand[aria-pressed=true] { border-color: var(--action); background: var(--action-soft); }
+  .cand .t { font-weight: 600; } .cand .m { font-size: 12px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+  .links { display: grid; grid-template-columns: 96px 1fr auto auto; gap: 4px 16px; align-items: baseline; }
+  .links a { color: var(--ink); overflow-wrap: anywhere; }
+  .links .k { color: var(--ink-2); }
+  details { margin-top: 8px; } summary { cursor: pointer; color: var(--ink-2); }
+  details ul { margin: 8px 0 0; padding-left: 16px; } details li { overflow-wrap: anywhere; }
+
+  .judge { margin-top: 32px; padding-top: 16px; border-top: 1px solid var(--line); display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .judge button { background: var(--surface); border: 1px solid var(--line-2); border-radius: 4px; padding: 4px 16px; cursor: pointer; font-weight: 600; }
+  .judge button[aria-pressed=true].ok { background: var(--good); border-color: var(--good); color: var(--page); }
+  .judge button[aria-pressed=true].wrong { background: var(--danger); border-color: var(--danger); color: var(--page); }
+  .judge select, .judge input { background: var(--surface); border: 1px solid var(--line); border-radius: 4px; padding: 4px 8px; min-width: 0; }
+  .judge input { flex: 1; min-width: 160px; }
+  .keys { font-size: 12px; color: var(--ink-2); margin: 12px 0 0; }
+  kbd { font: inherit; border: 1px solid var(--line-2); border-radius: 4px; padding: 0 4px; }
+
+  @media (max-width: 860px) {
+    html, body { height: auto; }
+    body { display: block; }
+    main { display: block; }
+    .queue { border-right: 0; display: block; }
+    .list { overflow: visible; }
+    .detail { display: none; padding: 16px; }
+    body.open .queue { display: none; }
+    body.open .detail { display: block; }
+    .back { display: inline-block; }
+    .compare { grid-template-columns: 1fr; }
+    .links { grid-template-columns: 1fr auto; } .links .k { grid-column: 1 / -1; margin-top: 8px; }
+    header { padding: 12px 16px; }
+    .keys { display: none; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>Resolution review</h1>
+  <p id="summary"></p>
+  <button id="theme" type="button" aria-pressed="false">Dark theme</button>
+  <button id="export" type="button">Export corrections</button>
+</header>
+<main>
+  <nav class="queue" aria-label="Decisions">
+    <div class="tools">
+      <input type="search" id="q" placeholder="Search name or id" aria-label="Search">
+      <div class="tabs" id="tabs" role="group" aria-label="Filter by decision"></div>
+      <div class="tabs" id="types" role="group" aria-label="Filter by type"></div>
+      <div class="progress"><span id="shown"></span><span id="done"></span></div>
+    </div>
+    <ul class="list" id="list"></ul>
+  </nav>
+  <article class="detail" id="detail" tabindex="-1"></article>
+</main>
+<script>
+  const REPORT = /*__REPORT_DATA__*/null;
+</script>
+<script>
+(function () {
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const pct = v => Math.round((v || 0) * 100) + "%";
+  const href = u => (/^https?:\/\//i.test(u) ? u : "https://" + u);
+  if (!REPORT) { $("detail").innerHTML = '<p class="none">This file holds no report data. Run solve.py to write a filled report.</p>'; return; }
+
+  const KEY = "resolver-review:" + (REPORT.generated_at || "");
+  const THEME_KEY = "resolver-review-theme";
+  let marks = {};
+  try { marks = JSON.parse(localStorage.getItem(KEY) || "{}"); } catch (e) { marks = {}; }
+  if (!marks || typeof marks !== "object" || Array.isArray(marks)) marks = {};
+  const save = () => { try { localStorage.setItem(KEY, JSON.stringify(marks)); } catch (e) { /* storage unavailable */ } };
+
+  const s = REPORT.stats;
+  const rows = REPORT.rows.map((r, i) => ({ ...r, order: i, key: r.type + ":" + r.input_id,
+    kind: r.decision !== "NEW" ? "match" : r.dup_of ? "repeat" : "new" }));
+  const byKey = Object.fromEntries(rows.map(r => [r.key, r]));
+  const verdict = r => r.kind === "match" ? "Same as " + r.decided_name : r.kind === "repeat" ? "New, repeat of " + (r.dup_of_name || r.dup_of) : "New entity";
+  const decidedBy = r => r.model ? r.model.split("/").pop() : "offline rules";
+  const RULES = { "exact_name+text": "The name is identical and the descriptions agree", "fuzzy_name+text": "The name is close and the descriptions agree",
+    "name+org": "The name matches and the article names an organization from the database record",
+    "no_candidate": "No database record has a similar name or description",
+    "insufficient_evidence": "A database record has a similar name, but the text does not support a match" };
+  const reasonText = t => RULES[t] || (/^[a-z0-9_:+]+$/.test(t || "") ? t.replace(/[_:+]/g, " ") : t || "");
+  const NARROW = matchMedia("(max-width: 860px)");
+  const state = { tab: "review", type: "", q: "", sel: null, cand: null, full: false };
+  const TYPES = [["", "All types"], ["organizations", "Organizations"], ["people", "People"]];
+  const ofType = r => !state.type || r.type === state.type;
+
+  const STOP = new Set("the and for with that this from are was were has have its their our his her who which into over than then also been will would can could said says company based firm builds build building built startup founded provides offers platform".split(" "));
+  const norm = w => w.normalize("NFKD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]/g, "");
+  const words = t => new Set(String(t || "").split(/[^\p{L}\p{N}]+/u).map(norm).filter(w => w.length > 2 && !STOP.has(w)));
+  function highlight(text, shared) {
+    return String(text || "").split(/([\p{L}\p{N}]+)/u).map(part => shared.has(norm(part)) ? `<mark>${esc(part)}</mark>` : esc(part)).join("");
+  }
+  function excerpt(text, name) {
+    if (state.full || text.length <= 640) return [text, false];
+    const at = Math.max(0, text.toLowerCase().indexOf(String(name).toLowerCase()));
+    const from = Math.max(0, at - 280), to = Math.min(text.length, at + 360);
+    return [(from ? "…" : "") + text.slice(from, to) + (to < text.length ? "…" : ""), true];
+  }
+
+  const TABS = [["review", "Needs review", r => r.needs_review], ["match", "Matched", r => r.kind === "match"],
+    ["new", "New", r => r.kind !== "match"], ["all", "All", () => true]];
+  const reviewed = () => rows.filter(r => r.needs_review && (marks[r.key] || {}).state).length;
+  const links = Object.values(s.links_emitted || {}).reduce((a, b) => a + b, 0);
+  const b = v => `<b>${esc(v)}</b>`;
+  $("summary").innerHTML = `${b(rows.length)} rows: ${b(rows.filter(r => r.kind === "match").length)} matched, ${b(rows.filter(r => r.kind !== "match").length)} new, ${b(links)} links. `
+    + `Decided by ${Object.entries(rows.reduce((a, r) => (a[decidedBy(r)] = (a[decidedBy(r)] || 0) + 1, a), {})).map(([k, v]) => `${esc(k)} ${b(v)}`).join(", ")}. `
+    + `The run took ${b((s.wall_seconds || 0).toFixed(1) + " s")}, ${b(s.serper_queries)} searches and ${b("$" + (s.usd_total || 0).toFixed(3))} of model spend${s.deadline_hit ? ", and hit the deadline" : ""}.`;
+
+  function visible() {
+    const test = TABS.find(t => t[0] === state.tab)[2], q = state.q.toLowerCase();
+    return rows.filter(r => ofType(r) && test(r) && (!q || (r.name + " " + r.input_id + " " + r.decided_name).toLowerCase().includes(q)))
+      .sort((a, c) => (a.confidence - c.confidence) || (a.order - c.order));
+  }
+  function drawList() {
+    $("tabs").innerHTML = TABS.map(t => `<button type="button" data-tab="${t[0]}" aria-pressed="${state.tab === t[0]}">${t[1]}<span class="num">${rows.filter(r => ofType(r) && t[2](r)).length}</span></button>`).join("");
+    $("types").innerHTML = TYPES.map(t => `<button type="button" data-type="${t[0]}" aria-pressed="${state.type === t[0]}">${t[1]}</button>`).join("");
+    const out = visible();
+    if (!out.some(r => r.key === state.sel)) { state.sel = out.length ? out[0].key : null; state.cand = null; state.full = false; }
+    $("shown").textContent = `${out.length} shown, least certain first`;
+    $("done").textContent = `${reviewed()} of ${rows.filter(r => r.needs_review).length} reviewed`;
+    $("list").innerHTML = out.map(r => {
+      const stored = (marks[r.key] || {}).state, m = stored === "ok" || stored === "wrong" ? stored : "";
+      const tag = m ? `<span class="s ${m}">${m === "ok" ? "confirmed" : "marked wrong"}</span>` : r.needs_review && state.tab !== "review" ? '<span class="s review">needs review</span>' : '<span class="s"></span>';
+      return `<li><button type="button" class="row" data-key="${esc(r.key)}" aria-current="${r.key === state.sel}">
+        <span class="n">${esc(r.name)}</span><span class="c">${pct(r.confidence)}</span><span class="v">${esc(verdict(r))}</span>${tag}</button></li>`;
+    }).join("") || '<li class="none">No rows match this filter and search. Clear the search or pick another tab.</li>';
+  }
+
+  function drawDetail() {
+    const r = byKey[state.sel], el = $("detail");
+    if (!r) { el.innerHTML = '<p class="none">Nothing selected.</p>'; return; }
+    const cands = r.candidates || [], found = cands.findIndex(c => c.id === r.decision);
+    const missing = r.kind === "match" && found < 0 && state.cand === null;
+    const ci = missing ? -1 : state.cand ?? Math.max(0, found), c = cands[ci];
+    const [shown, cut] = excerpt(r.text || "", r.name);
+    const shared = c ? new Set([...words(r.name + " " + r.text)].filter(w => words(c.name + " " + c.description).has(w))) : new Set();
+    const m = marks[r.key] || {};
+    const right = missing ? `<div class="rec"><h3>Database record it was matched to <span class="num">${esc(r.decision)}</span></h3><div class="name">${esc(r.decided_name)}</div><p class="text muted">This record is not among the retrieved candidates, so its description cannot be shown. Pick a candidate below to compare.</p></div>`
+      : !c ? `<div class="rec rejected"><h3>Database</h3><p class="text muted">No database record came close enough to compare.</p></div>`
+      : `<div class="rec ${c.id === r.decision ? "" : "rejected"}"><h3>${c.id === r.decision ? "Database record it was matched to" : r.kind === "match" ? "Another candidate, not the one matched" : "Nearest database record, not matched"} <span class="num">${esc(c.id)}</span></h3>
+          <div class="name">${highlight(c.name, shared)}</div><p class="text">${highlight(c.description, shared)}</p>
+          <dl class="signals">${Object.entries(c.links || {}).filter(([, u]) => u).map(([f, u]) => `<dt>${esc(f)}</dt><dd><a href="${esc(href(u))}" target="_blank" rel="noopener noreferrer">${esc(u)}</a></dd>`).join("")}</dl>
+          <dl class="signals"><dt>Name similarity</dt><dd>${Math.round(c.name_score)} of 100${c.exact_name ? ", exact" : ""}</dd>
+          <dt>Text similarity</dt><dd>${c.text_score.toFixed(2)}</dd><dt>Embedding</dt><dd>${c.embed_score ? c.embed_score.toFixed(2) : "not run"}</dd>
+          <dt>Shared link</dt><dd>${(c.link_hit || []).length ? esc(c.link_hit.join(", ")) : "none found"}</dd></dl></div>`;
+    const others = cands.length > 1 ? `<section><h3>Compare with another candidate</h3><div class="cands">${cands.map((x, i) =>
+      `<button type="button" class="cand" data-cand="${i}" aria-pressed="${i === ci}"><span class="t">${esc(x.name)}${x.id === r.decision ? " (matched)" : ""}</span><span class="m">${esc(x.id)}</span>
+        <span class="m">name ${Math.round(x.name_score)}, text ${x.text_score.toFixed(2)}${x.embed_score ? ", embedding " + x.embed_score.toFixed(2) : ""}</span></button>`).join("")}</div></section>` : "";
+    const le = Object.entries(r.links || {}), lc = Object.entries(r.link_candidates || {}).filter(([, v]) => v.length);
+    const linkBlock = r.kind === "match" ? "" : `<section><h3>Links for this new entity</h3>${le.length ? `<div class="links">${le.map(([f, l]) =>
+      `<span class="k">${esc(f)}</span><a href="${esc(href(l.url))}" target="_blank" rel="noopener noreferrer">${esc(l.url)}</a><span class="num">${pct(l.confidence)}</span><span class="muted">${esc(l.source || "")}</span>`).join("")}</div>`
+      : '<p class="muted">No link was emitted. A blank scores zero, a wrong link scores negative, so uncertain links are left out.</p>'}
+      ${lc.length ? `<details><summary>Link candidates that were considered</summary>${lc.map(([f, v]) => `<ul>${v.map(x => `<li>${esc(f)}: ${esc(x.url)}${x.chosen ? " (chosen)" : ""}, from ${esc(x.source)}</li>`).join("")}</ul>`).join("")}</details>` : ""}</section>`;
+    el.innerHTML = `<button type="button" class="back" id="back">Back to the list</button>
+      <div class="kicker">${esc(r.type === "people" ? "Person" : "Organization")} <span class="num">${esc(r.input_id)}</span>, decided by ${esc(decidedBy(r))}</div>
+      <div class="verdict"><h2>${esc(verdict(r))}</h2><span class="conf">${pct(r.confidence)}<small>confidence</small></span></div>
+      <div class="track"><div class="fill" style="width:${Math.round((r.confidence || 0) * 100)}%"></div></div>
+      <p class="why">${esc(reasonText(r.reason).replace(/[.\s]+$/, ""))}.${r.employer ? ` The text ties this person to ${esc(r.employer)}${r.role ? " as " + esc(r.role) : ""}.` : ""}</p>
+      ${(r.flags || []).length ? `<p class="flags">Needs review: ${esc(r.flags.map(f => f.replace(/_/g, " ").replace(/:(\w+)$/, " ($1)")).join(", "))}</p>` : ""}
+      <div class="compare"><div class="rec"><h3>Incoming record</h3><div class="name">${highlight(r.name, shared)}</div><p class="text">${highlight(shown, shared)}</p>
+        ${cut || state.full ? `<button type="button" class="more" id="more">${state.full ? "Show the excerpt" : "Show the full text"}</button>` : ""}</div>${right}</div>
+      ${c ? '<p class="legend"><mark>Highlighted</mark> words appear in both records.</p>' : ""}
+      ${others}${linkBlock}
+      <div class="judge"><button type="button" class="ok" data-state="ok" aria-pressed="${m.state === "ok"}">Decision is right</button>
+        <button type="button" class="wrong" data-state="wrong" aria-pressed="${m.state === "wrong"}">Decision is wrong</button>
+        ${m.state === "wrong" ? `<select id="should" aria-label="Correct answer"><option value="">Correct answer</option><option value="NEW"${m.should === "NEW" ? " selected" : ""}>New entity</option>${cands.map(x => `<option value="${esc(x.id)}"${m.should === x.id ? " selected" : ""}>Same as ${esc(x.name)} (${esc(x.id)})</option>`).join("")}<option value="other"${m.should === "other" ? " selected" : ""}>Something else, see note</option></select>` : ""}
+        <input id="note" placeholder="Note for the next reviewer" value="${esc(m.note || "")}" aria-label="Note"></div>
+      <p class="keys"><kbd>J</kbd> next, <kbd>K</kbd> previous, <kbd>R</kbd> right, <kbd>W</kbd> wrong. Marks stay in this browser and go into the export only; they never change the submission.</p>`;
+  }
+  const draw = () => { drawList(); drawDetail(); };
+  function enter() { const el = $("detail"); el.classList.remove("enter"); void el.offsetWidth; el.classList.add("enter"); }
+  function select(key, open) { state.sel = key; state.cand = null; state.full = false; if (open) document.body.classList.add("open"); draw(); $("detail").scrollTop = 0; if (NARROW.matches) window.scrollTo(0, 0); enter(); }
+  function mark(st) { if (!state.sel) return; const m = marks[state.sel] || (marks[state.sel] = {}); m.state = m.state === st ? undefined : st; if (m.state !== "wrong") delete m.should; save(); if (m.state === "ok") { const at = state.sel; step(1); if (state.sel === at) draw(); } else draw(); }
+  function step(d) { const out = visible(), i = out.findIndex(r => r.key === state.sel), n = out[i + d]; if (n) { select(n.key); const el = document.querySelector('.row[aria-current="true"]'); if (el) el.scrollIntoView({ block: "nearest" }); } }
+
+  $("tabs").addEventListener("click", e => { const t = e.target.closest("[data-tab]"); if (t) { state.tab = t.dataset.tab; draw(); } });
+  $("types").addEventListener("click", e => { const t = e.target.closest("[data-type]"); if (t) { state.type = t.dataset.type; draw(); } });
+  $("q").addEventListener("input", e => { state.q = e.target.value.trim(); draw(); });
+  $("list").addEventListener("click", e => { const t = e.target.closest(".row"); if (t) select(t.dataset.key, true); });
+  $("detail").addEventListener("click", e => {
+    if (e.target.id === "back") { document.body.classList.remove("open"); return; }
+    if (e.target.id === "more") { state.full = !state.full; drawDetail(); return; }
+    const c = e.target.closest("[data-cand]"); if (c) { state.cand = +c.dataset.cand; drawDetail(); return; }
+    const j = e.target.closest("[data-state]"); if (j) mark(j.dataset.state);
+  });
+  $("detail").addEventListener("change", e => {
+    const m = marks[state.sel] || (marks[state.sel] = {});
+    if (e.target.id === "should") m.should = e.target.value; else if (e.target.id === "note") m.note = e.target.value; else return;
+    save();
+  });
+  document.addEventListener("keydown", e => {
+    if (e.repeat || /^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName) || e.metaKey || e.ctrlKey || e.altKey) return;
+    if (NARROW.matches && !document.body.classList.contains("open")) return;
+    const k = e.key.toLowerCase();
+    if (k === "j") step(1); else if (k === "k") step(-1);
+    else if (k === "r") mark("ok"); else if (k === "w") mark("wrong");
+  });
+  $("export").addEventListener("click", () => {
+    const cell = v => { const t = String(v ?? ""); return '"' + (/^[=+\-@\t\r]/.test(t) ? "'" + t : t).replace(/"/g, '""') + '"'; };
+    const lines = [["type", "input_id", "name", "pipeline_decision", "confidence", "review", "correct_answer", "note"].join(",")];
+    rows.forEach(r => { const m = marks[r.key]; if (m && (m.state || m.note)) lines.push([r.type, r.input_id, r.name, r.decision, r.confidence, m.state || "", m.should || "", m.note || ""].map(cell).join(",")); });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([lines.join("\n") + "\n"], { type: "text/csv" }));
+    a.download = "corrections.csv"; a.click(); URL.revokeObjectURL(a.href);
+  });
+  function theme(name) {
+    document.documentElement.dataset.theme = name;
+    $("theme").textContent = name === "dark" ? "Light theme" : "Dark theme";
+    $("theme").setAttribute("aria-pressed", String(name === "dark"));
+    try { localStorage.setItem(THEME_KEY, name); } catch (e) { /* storage unavailable */ }
+  }
+  let stored = "light";
+  try { stored = localStorage.getItem(THEME_KEY) || "light"; } catch (e) { /* storage unavailable */ }
+  theme(stored);
+  $("theme").addEventListener("click", () => theme(document.documentElement.dataset.theme === "dark" ? "light" : "dark"));
+  let want = location.hash.slice(1);
+  try { want = decodeURIComponent(want); } catch (e) { /* keep the raw hash */ }
+  const hit = want && rows.find(r => r.input_id === want);
+  if (hit) { state.tab = "all"; state.sel = hit.key; document.body.classList.add("open"); }
+  draw();
+  enter();
+  const current = document.querySelector('.row[aria-current="true"]');
+  if (hit && current) current.scrollIntoView({ block: "center" });
+})();
+</script>
+</body>
+</html>
